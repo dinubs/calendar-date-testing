@@ -1,8 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDatePicker } from '@rehookify/datepicker';
-import { format, isValid } from 'date-fns';
 import { DateRange, RehookifyDateRangePickerProps } from './types';
 import { styles } from './styles';
+
+// Native JavaScript date formatting
+const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+};
+
+const isValidDate = (date: Date): boolean => {
+  return date instanceof Date && !isNaN(date.getTime());
+};
 
 const RehookifyDateRangePicker: React.FC<RehookifyDateRangePickerProps> = ({
   value,
@@ -115,11 +127,11 @@ const RehookifyDateRangePicker: React.FC<RehookifyDateRangePickerProps> = ({
     try {
       if (!range?.from) return placeholder;
       
-      const fromStr = isValid(range.from) ? format(range.from, 'MMM dd, yyyy') : 'Invalid Date';
+      const fromStr = isValidDate(range.from) ? formatDate(range.from) : 'Invalid Date';
       
       if (!range.to) return fromStr;
       
-      const toStr = isValid(range.to) ? format(range.to, 'MMM dd, yyyy') : 'Invalid Date';
+      const toStr = isValidDate(range.to) ? formatDate(range.to) : 'Invalid Date';
       
       return `${fromStr} - ${toStr}`;
     } catch (error) {

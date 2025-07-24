@@ -1,8 +1,6 @@
-import { DateValue } from '@internationalized/date';
-
 export interface DateRange {
-  start?: DateValue;
-  end?: DateValue;
+  start?: Date;
+  end?: Date;
 }
 
 export interface ReactAriaDateRangePickerProps {

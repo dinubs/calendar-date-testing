@@ -1,18 +1,42 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useButton } from 'react-aria';
+import { useButton, useRangeCalendar, useCalendarGrid, useCalendarCell } from 'react-aria';
 import { useRangeCalendarState } from 'react-stately';
 import { 
   CalendarDate, 
+  createCalendar,
   getLocalTimeZone,
-  isToday,
-  isSameMonth,
-  startOfWeek,
-  createCalendar
+  today,
+  CalendarDateTime
 } from '@internationalized/date';
 import { DateRange, ReactAriaDateRangePickerProps } from './types';
 import { styles } from './styles';
 
-// Simplified React Aria Date Range Picker Component
+// Convert native Date to CalendarDate
+const dateToCalendarDate = (date: Date): CalendarDate => {
+  return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+};
+
+// Convert CalendarDate to native Date
+const calendarDateToDate = (calendarDate: CalendarDate): Date => {
+  return new Date(calendarDate.year, calendarDate.month - 1, calendarDate.day);
+};
+
+// Native JavaScript date formatting
+const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+};
+
+const formatMonth = (date: Date): string => {
+  return date.toLocaleDateString('en-US', { 
+    month: 'long', 
+    year: 'numeric' 
+  });
+};
+
 const ReactAriaDateRangePicker: React.FC<ReactAriaDateRangePickerProps> = ({
   value,
   onChange,
@@ -24,42 +48,47 @@ const ReactAriaDateRangePicker: React.FC<ReactAriaDateRangePickerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Simplified state management without complex React Aria hooks for now
-  const [internalValue, setInternalValue] = useState<DateRange | null>(value || null);
+  // Convert native Date range to CalendarDate range for React Aria
+  const calendarValue = React.useMemo(() => {
+    if (!value?.start && !value?.end) return null;
+    return {
+      start: value?.start ? dateToCalendarDate(value.start) : undefined,
+      end: value?.end ? dateToCalendarDate(value.end) : undefined
+    };
+  }, [value]);
 
-  const handleDateClick = (date: CalendarDate) => {
-    console.log('Date clicked:', date);
-    
-    let newRange: DateRange | null = null;
-    
-    if (!internalValue?.start) {
-      // First date selection
-      newRange = { start: date, end: undefined };
-    } else if (!internalValue?.end) {
-      // Second date selection
-      if (date.compare(internalValue.start) >= 0) {
-        newRange = { start: internalValue.start, end: date };
-      } else {
-        newRange = { start: date, end: internalValue.start };
+  // Calendar state using React Stately
+  const state = useRangeCalendarState({
+    value: calendarValue,
+    onChange: (range) => {
+      console.log('React Aria range changed:', range);
+      
+      if (!onChange) return;
+      
+      let newRange: DateRange | null = null;
+      
+      if (range?.start || range?.end) {
+        newRange = {
+          start: range?.start ? calendarDateToDate(range.start) : undefined,
+          end: range?.end ? calendarDateToDate(range.end) : undefined
+        };
       }
-    } else {
-      // Reset and start new selection
-      newRange = { start: date, end: undefined };
-    }
-    
-    setInternalValue(newRange);
-    if (onChange) {
+      
       onChange(newRange);
-    }
-    
-    // Close when complete range is selected
-    if (newRange?.start && newRange?.end) {
-      console.log('Closing popover - complete range selected');
-      setTimeout(() => setIsOpen(false), 100);
-    } else {
-      console.log('Keeping popover open - incomplete range');
-    }
-  };
+      
+      // Close when complete range is selected
+      if (newRange?.start && newRange?.end) {
+        console.log('Closing popover - complete range selected');
+        setTimeout(() => setIsOpen(false), 100);
+      }
+    },
+    createCalendar,
+    locale: 'en-US',
+    visibleDuration: { months: 2 }
+  });
+
+  // Calendar hook for the container
+  const { calendarProps, title } = useRangeCalendar({}, state);
 
   // Button trigger props
   const { buttonProps } = useButton(
@@ -71,9 +100,18 @@ const ReactAriaDateRangePicker: React.FC<ReactAriaDateRangePickerProps> = ({
   );
 
   const formatDateRange = (range: DateRange | null): string => {
-    if (!range?.start) return placeholder;
-    if (!range.end) return range.start.toDate(getLocalTimeZone()).toLocaleDateString();
-    return `${range.start.toDate(getLocalTimeZone()).toLocaleDateString()} - ${range.end.toDate(getLocalTimeZone()).toLocaleDateString()}`;
+    try {
+      if (!range?.start) return placeholder;
+      
+      const startStr = formatDate(range.start);
+      if (!range.end) return startStr;
+      
+      const endStr = formatDate(range.end);
+      return `${startStr} - ${endStr}`;
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return placeholder;
+    }
   };
 
   const handleClickOutside = (event: MouseEvent) => {
@@ -90,77 +128,11 @@ const ReactAriaDateRangePicker: React.FC<ReactAriaDateRangePickerProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    setInternalValue(value || null);
+    // Sync external value changes with internal state
+    if (value !== undefined) {
+      // This will trigger state.setValue via the state hook
+    }
   }, [value]);
-
-  // Generate calendar for current month
-  const generateCalendar = (monthOffset: number = 0) => {
-    const today = new CalendarDate(new Date().getFullYear(), new Date().getMonth() + 1 + monthOffset, 1);
-    const startOfMonth = today.set({ day: 1 });
-    const startDate = startOfWeek(startOfMonth, 'en-US');
-    
-    const weeks = [];
-    let date = startDate;
-    
-    // Generate 6 weeks
-    for (let week = 0; week < 6; week++) {
-      const days = [];
-      for (let day = 0; day < 7; day++) {
-        days.push(date);
-        date = date.add({ days: 1 });
-      }
-      weeks.push(days);
-    }
-    
-    return { weeks, monthDate: startOfMonth };
-  };
-
-  const renderDay = (date: CalendarDate, monthDate: CalendarDate) => {
-    const isOutsideMonth = !isSameMonth(date, monthDate);
-    const isTodayDate = isToday(date, getLocalTimeZone());
-    const isSelected = internalValue?.start && date.compare(internalValue.start) === 0;
-    const isEndSelected = internalValue?.end && date.compare(internalValue.end) === 0;
-    const isInRange = internalValue?.start && internalValue?.end && 
-      date.compare(internalValue.start) > 0 && date.compare(internalValue.end) < 0;
-
-    let dayStyles = { ...styles.day };
-
-    if (isOutsideMonth) {
-      dayStyles = { ...dayStyles, ...styles.dayOutside };
-    } else {
-      dayStyles = { ...dayStyles, ...styles.dayNormal };
-    }
-
-    if (isTodayDate && !isSelected && !isEndSelected) {
-      dayStyles = { ...dayStyles, ...styles.dayToday };
-    }
-
-    if (isSelected || isEndSelected) {
-      dayStyles = { ...dayStyles, ...styles.daySelected };
-    } else if (isInRange) {
-      dayStyles = { ...dayStyles, ...styles.dayRangeMiddle };
-    }
-
-    return (
-      <button
-        key={date.toString()}
-        onClick={() => handleDateClick(date)}
-        style={dayStyles}
-        onMouseEnter={(e) => {
-          if (!isSelected && !isInRange && !isEndSelected) {
-            e.currentTarget.style.backgroundColor = styles.dayHover.backgroundColor;
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isSelected && !isInRange && !isEndSelected) {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }
-        }}
-      >
-        {date.day}
-      </button>
-    );
-  };
 
   const ChevronIcon = () => (
     <svg style={styles.chevron} viewBox="0 0 20 20">
@@ -184,63 +156,89 @@ const ReactAriaDateRangePicker: React.FC<ReactAriaDateRangePickerProps> = ({
     </svg>
   );
 
-  const [currentMonth, setCurrentMonth] = useState(0);
+  // Render a single calendar month
+  const renderCalendar = (monthIndex: number) => {
+    const monthState = state.calendars[monthIndex];
+    if (!monthState) return null;
 
-  const renderMonth = (monthOffset: number) => {
-    const { weeks, monthDate } = generateCalendar(currentMonth + monthOffset);
-    const isFirstMonth = monthOffset === 0;
-    const isLastMonth = monthOffset === 1;
+    const { gridProps, headerProps, weekDays } = useCalendarGrid({
+      weekdayStyle: 'short'
+    }, monthState);
+
+    const isFirstMonth = monthIndex === 0;
+    const isLastMonth = monthIndex === state.calendars.length - 1;
 
     return (
-      <div key={monthOffset} style={styles.month}>
+      <div key={monthIndex} style={styles.month}>
+        {/* Month Header */}
         <div style={styles.monthHeader}>
           {isFirstMonth && (
             <button
-              onClick={() => setCurrentMonth(currentMonth - 1)}
+              onClick={() => state.focusPreviousPage()}
+              disabled={!state.isPreviousVisibleRangeValid()}
               style={{
                 ...styles.navButton,
-                ...styles.navButtonEnabled
+                ...(state.isPreviousVisibleRangeValid() ? styles.navButtonEnabled : styles.navButtonDisabled)
               }}
             >
               <ChevronLeftIcon />
             </button>
           )}
-          {!isFirstMonth && <div style={{ width: '36px' }}></div>}
+          {!isFirstMonth && <div style={{ width: '36px' }} />}
           
-          <h3 style={styles.monthTitle}>
-            {monthDate.toDate(getLocalTimeZone()).toLocaleDateString('en-US', { 
-              month: 'long', 
-              year: 'numeric' 
-            })}
+          <h3 style={styles.monthTitle} {...headerProps}>
+            {formatMonth(calendarDateToDate(monthState.visibleRange.start))}
           </h3>
           
           {isLastMonth && (
             <button
-              onClick={() => setCurrentMonth(currentMonth + 1)}
+              onClick={() => state.focusNextPage()}
+              disabled={!state.isNextVisibleRangeValid()}
               style={{
                 ...styles.navButton,
-                ...styles.navButtonEnabled
+                ...(state.isNextVisibleRangeValid() ? styles.navButtonEnabled : styles.navButtonDisabled)
               }}
             >
               <ChevronRightIcon />
             </button>
           )}
-          {!isLastMonth && <div style={{ width: '36px' }}></div>}
+          {!isLastMonth && <div style={{ width: '36px' }} />}
         </div>
 
+        {/* Weekdays */}
         <div style={styles.weekdays}>
-          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-            <div key={day} style={styles.weekday}>
+          {weekDays.map((day, idx) => (
+            <div key={idx} style={styles.weekday}>
               {day}
             </div>
           ))}
         </div>
 
-        {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} style={styles.week}>
-            {week.map(date => renderDay(date, monthDate))}
-          </div>
-        ))}
+        {/* Calendar Grid */}
+        <table {...gridProps} style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
+            {[...Array(6).keys()].map((weekIndex) => (
+              <tr key={weekIndex} style={{ display: 'contents' }}>
+                {monthState.getDatesInWeek(weekIndex).map((date, dayIndex) => {
+                  if (!date) {
+                    return (
+                      <td key={dayIndex} style={{ width: '40px', height: '40px' }} />
+                    );
+                  }
+
+                  return (
+                    <CalendarCell
+                      key={date.toString()}
+                      state={state}
+                      date={date}
+                      currentMonth={monthState.visibleRange.start}
+                    />
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   };
@@ -255,7 +253,7 @@ const ReactAriaDateRangePicker: React.FC<ReactAriaDateRangePickerProps> = ({
           ...(disabled ? styles.triggerDisabled : {})
         }}
       >
-        <span>{formatDateRange(internalValue)}</span>
+        <span>{formatDateRange(value)}</span>
         <ChevronIcon />
       </button>
 
@@ -263,14 +261,83 @@ const ReactAriaDateRangePicker: React.FC<ReactAriaDateRangePickerProps> = ({
         <>
           <div style={styles.overlay} />
           <div style={styles.popover}>
-            <div style={styles.calendar}>
-              {renderMonth(0)}
-              {renderMonth(1)}
+            <div {...calendarProps} style={styles.calendar}>
+              {state.calendars.map((_, index) => renderCalendar(index))}
             </div>
           </div>
         </>
       )}
     </div>
+  );
+};
+
+// Calendar Cell Component using useCalendarCell
+interface CalendarCellProps {
+  state: any;
+  date: CalendarDate;
+  currentMonth: CalendarDate;
+}
+
+const CalendarCell: React.FC<CalendarCellProps> = ({ state, date, currentMonth }) => {
+  const ref = useRef<HTMLTableCellElement>(null);
+  const { cellProps, buttonProps, isPressed, isSelected, isDisabled, formattedDate } = useCalendarCell(
+    { date },
+    state,
+    ref
+  );
+
+  const isOutsideMonth = date.month !== currentMonth.month;
+  const isToday = date.compare(today(getLocalTimeZone())) === 0;
+  const isRangeStart = state.highlightedRange?.start && date.compare(state.highlightedRange.start) === 0;
+  const isRangeEnd = state.highlightedRange?.end && date.compare(state.highlightedRange.end) === 0;
+  const isInRange = state.highlightedRange && 
+    state.highlightedRange.start && 
+    state.highlightedRange.end &&
+    date.compare(state.highlightedRange.start) > 0 && 
+    date.compare(state.highlightedRange.end) < 0;
+
+  let dayStyles = { ...styles.day };
+
+  if (isOutsideMonth) {
+    dayStyles = { ...dayStyles, ...styles.dayOutside };
+  } else {
+    dayStyles = { ...dayStyles, ...styles.dayNormal };
+  }
+
+  if (isToday && !isSelected && !isRangeStart && !isRangeEnd) {
+    dayStyles = { ...dayStyles, ...styles.dayToday };
+  }
+
+  if (isRangeStart || isRangeEnd || isSelected) {
+    dayStyles = { ...dayStyles, ...styles.daySelected };
+  } else if (isInRange) {
+    dayStyles = { ...dayStyles, ...styles.dayRangeMiddle };
+  }
+
+  if (isPressed) {
+    dayStyles = { ...dayStyles, opacity: 0.8 };
+  }
+
+  return (
+    <td {...cellProps} ref={ref} style={{ padding: '2px' }}>
+      <button
+        {...buttonProps}
+        disabled={isDisabled}
+        style={dayStyles}
+        onMouseEnter={(e) => {
+          if (!isSelected && !isInRange && !isRangeStart && !isRangeEnd) {
+            e.currentTarget.style.backgroundColor = styles.dayHover.backgroundColor;
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isSelected && !isInRange && !isRangeStart && !isRangeEnd) {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }
+        }}
+      >
+        {formattedDate}
+      </button>
+    </td>
   );
 };
 

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { DateRangePicker, TrulyHeadlessDateRangePicker, DateRange } from './components/DateRangePicker';
 import { ReactAriaDateRangePicker, DateRange as AriaDateRange } from './components/ReactAriaDateRangePicker';
 import { RehookifyDateRangePicker, DateRange as RehookifyDateRange } from './components/RehookifyDateRangePicker';
-import { CalendarDate, getLocalTimeZone } from '@internationalized/date';
 
 const App: React.FC = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -29,16 +28,16 @@ const App: React.FC = () => {
           <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Implementation Details:</h3>
           <ul style={{ margin: 0, paddingLeft: '20px' }}>
             <li><strong>Truly headless:</strong> Uses only useCalendar & useSelection hooks for logic</li>
+            <li><strong>Native JavaScript dates:</strong> No external date libraries, only built-in Date methods</li>
             <li><strong>Full rendering control:</strong> Every element (days, navigation, grid) is custom rendered</li>
             <li><strong>Two-month view:</strong> Custom grid layout showing current and next month</li>
             <li><strong>Custom day components:</strong> Complete control over day styling and interaction</li>
-            <li><strong>Custom navigation:</strong> Built from scratch with calendar.goToMonth() hooks</li>
             <li><strong>Zero default styling:</strong> No CSS imports or overrides needed</li>
           </ul>
           
           <h3 style={{ margin: '16px 0 8px 0', fontSize: '16px' }}>Evaluation Criteria:</h3>
-          <p style={{ margin: '0 0 8px 0' }}><strong>Pros:</strong> Ultimate customization, smaller bundle (no default components), complete control</p>
-          <p style={{ margin: 0 }}><strong>Cons:</strong> More implementation work, need to handle all edge cases yourself</p>
+          <p style={{ margin: '0 0 8px 0' }}><strong>Pros:</strong> Ultimate customization, minimal dependencies, native Date API, complete control</p>
+          <p style={{ margin: 0 }}><strong>Cons:</strong> More implementation work, manual date formatting, need to handle all edge cases yourself</p>
         </div>
 
         <div style={{ marginBottom: '20px' }}>
@@ -80,17 +79,17 @@ const App: React.FC = () => {
         }}>
           <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Implementation Details:</h3>
           <ul style={{ margin: 0, paddingLeft: '20px' }}>
-            <li><strong>React Aria hooks:</strong> Uses useRangeCalendar, useCalendarGrid, useCalendarCell</li>
-            <li><strong>Complete accessibility:</strong> Built-in ARIA support, keyboard navigation, screen reader friendly</li>
-            <li><strong>Internationalized dates:</strong> Uses @internationalized/date for robust date handling</li>
-            <li><strong>Custom rendering:</strong> Full control over calendar grid, cells, and navigation</li>
-            <li><strong>State management:</strong> React Stately for robust state handling</li>
-            <li><strong>TypeScript first:</strong> Excellent type safety throughout</li>
+            <li><strong>React Aria calendar hooks:</strong> Uses useRangeCalendar, useCalendarGrid, useCalendarCell</li>
+            <li><strong>React Stately:</strong> useRangeCalendarState for robust calendar state management</li>
+            <li><strong>Full accessibility:</strong> ARIA support, keyboard navigation, screen reader friendly</li>
+            <li><strong>Native Date bridge:</strong> Converts between native Date and CalendarDate for API compatibility</li>
+            <li><strong>Two-month view:</strong> Built-in visibleDuration support for dual calendars</li>
+            <li><strong>Native formatting:</strong> Uses toLocaleDateString() for user-facing display</li>
           </ul>
           
           <h3 style={{ margin: '16px 0 8px 0', fontSize: '16px' }}>Evaluation Criteria:</h3>
-          <p style={{ margin: '0 0 8px 0' }}><strong>Pros:</strong> Best-in-class accessibility, robust date handling, excellent TypeScript support</p>
-          <p style={{ margin: 0 }}><strong>Cons:</strong> Larger bundle size, more complex API, learning curve for @internationalized/date</p>
+          <p style={{ margin: '0 0 8px 0' }}><strong>Pros:</strong> Best-in-class accessibility, robust state management, proper React Aria patterns</p>
+          <p style={{ margin: 0 }}><strong>Cons:</strong> Requires @internationalized/date bridge, larger bundle size, more complex setup</p>
         </div>
 
         <div style={{ marginBottom: '20px' }}>
@@ -113,8 +112,8 @@ const App: React.FC = () => {
             fontSize: '14px'
           }}>
             <strong>Selected Range:</strong> {' '}
-            {ariaDateRange.start && `From: ${ariaDateRange.start.toDate(getLocalTimeZone()).toLocaleDateString()}`}
-            {ariaDateRange.end && ` | To: ${ariaDateRange.end.toDate(getLocalTimeZone()).toLocaleDateString()}`}
+            {ariaDateRange.start && `From: ${ariaDateRange.start.toLocaleDateString()}`}
+            {ariaDateRange.end && ` | To: ${ariaDateRange.end.toLocaleDateString()}`}
           </div>
         )}
 
@@ -133,16 +132,16 @@ const App: React.FC = () => {
           <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Implementation Details:</h3>
           <ul style={{ margin: 0, paddingLeft: '20px' }}>
             <li><strong>Pure headless hook:</strong> Uses useDatePicker hook for all logic</li>
+            <li><strong>Native JavaScript dates:</strong> No external date libraries, only built-in Date methods</li>
             <li><strong>Prop getters pattern:</strong> Provides button props via dayButton, nextMonthButton, etc.</li>
-            <li><strong>Minimal API:</strong> Simple configuration with powerful features</li>
             <li><strong>Range selection:</strong> Built-in range mode with toggle and limit options</li>
-            <li><strong>Multiple calendar support:</strong> Easy two-month view with offsets</li>
-            <li><strong>Lightweight:</strong> Small bundle size with no external dependencies</li>
+            <li><strong>Multiple calendar support:</strong> Two separate calendar instances for dual-month view</li>
+            <li><strong>Minimal dependencies:</strong> Clean API with zero external date library dependencies</li>
           </ul>
           
           <h3 style={{ margin: '16px 0 8px 0', fontSize: '16px' }}>Evaluation Criteria:</h3>
-          <p style={{ margin: '0 0 8px 0' }}><strong>Pros:</strong> Smallest bundle, clean API, excellent TypeScript support, very performant</p>
-          <p style={{ margin: 0 }}><strong>Cons:</strong> Less feature-rich than React Aria, smaller community, fewer built-in accessibility features</p>
+          <p style={{ margin: '0 0 8px 0' }}><strong>Pros:</strong> Ultra-lightweight, clean API, native Date API, excellent TypeScript support</p>
+          <p style={{ margin: 0 }}><strong>Cons:</strong> Basic date formatting, smaller community, fewer built-in accessibility features</p>
         </div>
 
         <div style={{ marginBottom: '20px' }}>
