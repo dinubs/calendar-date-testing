@@ -1,0 +1,31 @@
+{
+  "name": "calendar-testing",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js --dev",
+    "serve": "npx serve dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@internationalized/date": "^3.8.2",
+    "@rehookify/datepicker": "^6.6.8",
+    "date-fns": "^4.1.0",
+    "react": "^19.1.0",
+    "react-aria": "^3.42.0",
+    "react-day-picker": "^9.8.0",
+    "react-dom": "^19.1.0",
+    "react-stately": "^3.40.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "esbuild": "^0.25.8",
+    "typescript": "^5.8.3"
+  }
+}
